@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\RickAndMorty\RickAndMortyClient;
+use App\Services\RickAndMorty\RickAndMortyClientInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            RickAndMortyClientInterface::class, function () {
+                return new RickAndMortyClient(
+                    baseUri: config('services.rick_and_morty.base_uri'),
+                    timeout: config('services.rick_and_morty.timeout', 5),
+                    retryTimes: config('services.rick_and_morty.retry_times', 3),
+                    retryDelayMs: config('services.rick_and_morty.retry_delay_ms', 200),
+                );
+            }
+        );
     }
 
     /**
