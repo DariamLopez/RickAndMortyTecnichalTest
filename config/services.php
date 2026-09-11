@@ -34,5 +34,11 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'rick_and_morty' => [
+        'base_uri' => env('RICK_AND_MORTY_BASE_URI', 'https://rickandmortyapi.com/api/'),
+        'timeout' => (int) env('RICK_AND_MORTY_TIMEOUT', 5),
+        'retry_times' => (int) env('RICK_AND_MORTY_RETRY_TIMES', 3),
+        'retry_delay_ms' => (int) env('RICK_AND_MORTY_RETRY_DELAY_MS', 200),
+    ]
 
 ];
