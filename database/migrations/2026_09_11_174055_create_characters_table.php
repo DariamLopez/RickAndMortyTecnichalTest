@@ -20,8 +20,8 @@ return new class extends Migration
             $table->string('type')->nullable();
             $table->string('gender');
             $table->string('image')->nullable();
-            $table->unsignedBigInteger('origin_external_id')->nullable()->constrained('locations')->nullOnDelete();
-            $table->unsignedBigInteger('current_external_id')->nullable()->constrained('locations')->nullOnDelete();
+            $table->foreignId('origin_location_id')->nullable()->constrained('locations')->nullOnDelete();
+            $table->foreignId('current_location_id')->nullable()->constrained('locations')->nullOnDelete();
             $table->timestamps();
         });
     }
