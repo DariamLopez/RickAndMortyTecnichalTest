@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Auth;
+
 use App\Models\PersonalAccessToken;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
@@ -8,8 +10,6 @@ use Illuminate\Http\Request;
 class TokenGuard implements Guard
 {
     protected ?Authenticatable $user = null;
-
-    protected bool $resolved = false;
 
     public function __construct(protected Request $request) {}
 
@@ -25,12 +25,6 @@ class TokenGuard implements Guard
 
     public function user(): ?Authenticatable
     {
-        if (! $this->resolved) {
-            return $this->user;
-        }
-
-        $this->resolved = true;
-
         $plainTextToken = $this->request->bearerToken();
 
         if (! $plainTextToken){
@@ -68,6 +62,5 @@ class TokenGuard implements Guard
     public function setUser(Authenticatable $user): void
     {
         $this->user = $user;
-        $this->resolved = true;
     }
 }

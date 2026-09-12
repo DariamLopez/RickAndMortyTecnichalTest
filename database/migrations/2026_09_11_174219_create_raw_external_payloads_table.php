@@ -18,6 +18,8 @@ return new class extends Migration
             $table->json('payload');
             $table->timestamp('fetched_at');
             $table->timestamps();
+
+            $table->unique(['entity_type', 'external_id']);
         });
     }
 

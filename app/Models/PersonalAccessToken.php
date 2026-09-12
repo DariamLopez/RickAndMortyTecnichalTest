@@ -9,9 +9,9 @@ use Illuminate\Support\Str;
 
 class PersonalAccessToken extends Model
 {
-    protected $fillable = ['user_id', 'name', 'token', 'last_used_at', 'expired_at'];
+    protected $fillable = ['user_id', 'name', 'token', 'last_used_at', 'expires_at'];
 
-    protected function cast(): array
+    protected function casts(): array
     {
         return [
             'last_used_at' => 'datetime',
@@ -45,11 +45,11 @@ class PersonalAccessToken extends Model
 
     public static function findValidToken(string $plainTextToken): ?self
     {
-        $token = self::where('token', hash('sha256', $plainTextToken))->text->first();
+        $token = self::where('token', hash('sha256', $plainTextToken))->first();
 
         if (!$token || $token->isExpired()) {
             return null;
         }
-        return null;
+        return $token;
     }
 }
