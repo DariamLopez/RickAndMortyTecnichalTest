@@ -47,7 +47,6 @@ class RickAndMortyClientTest extends TestCase
         ]);
 
         $page = $this->client()->characters();
-        dump($page);
         $this->assertCount(1, $page->items);
         $this->assertFalse($page->hasMorePages);
 

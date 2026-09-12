@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\CharacterGender;
+use App\Enums\CharacterStatus;
 use App\Models\Character;
 use App\Models\Episode;
 use App\Models\Location;
@@ -131,10 +133,10 @@ class SyncRickAndMortyData extends Command
             ['external_id' => $dto->externalId],
             [
                 'name' => $dto->name,
-                'status' => $dto->status,
+                'status' => CharacterStatus::tryFrom($dto->status) ?? CharacterStatus::Unknown,
                 'species' => $dto->species,
                 'type' => $dto->type,
-                'gender' => $dto->gender,
+                'gender' => CharacterGender::tryFrom($dto->gender) ?? CharacterGender::Unknown,
                 'image' => $dto->image,
                 'origin_location_id' => $originalId,
                 'current_location_id' => $currentLocationId,
@@ -142,7 +144,6 @@ class SyncRickAndMortyData extends Command
         );
         $episodesIds = Episode::whereIn('external_id', $dto->episodeExternalIds)->pluck('id');
         $character->episodes()->sync($episodesIds);
-
     }
 
     private function storeRawPayload(string $entityType, int $externalId, array $payload): void
