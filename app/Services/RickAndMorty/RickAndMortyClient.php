@@ -50,6 +50,7 @@ final class RickAndMortyClient implements RickAndMortyClientInterface
 
         return new PageResult(
             items: $items,
+            rawItems: $data['results'],
             currentPage: $page,
             totalPages: (int) ($info['pages'] ?? $page),
             totalCount: (int) ($info['count'] ?? count($items)),
@@ -60,7 +61,6 @@ final class RickAndMortyClient implements RickAndMortyClientInterface
     private function request(string $endpoint, int $page): array
     {
         try {
-            $url = $this->baseUri . '/' . $endpoint . '?page=' . $page;
             $response = Http::baseUrl($this->baseUri)
                 ->timeout($this->timeout)
                 ->retry($this->retryTimes, $this->retryDelayMs, function (Throwable $exception) {
