@@ -30,7 +30,7 @@ class FavoriteController
     {
         $character = $request->user()->favoriteCharacters()->find($character->id);
         if (!$character) {
-            return response()->json(['error' => 'Character not found in favorites'], 404);
+            return response()->json(['message' => 'Missing, invalid, or expired token.'], 401);
         }
         $request->user()->favoriteCharacters()->detach($character->id);
 

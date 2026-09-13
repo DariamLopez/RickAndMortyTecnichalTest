@@ -115,7 +115,7 @@ paths:
         - name: name
           in: query
           schema: { type: string }
-          description: Case-insensitive partial match on the character's name.
+          description: Case-insensitive partial match on the character's name(minimum 3 characters).
         - name: status
           in: query
           schema: { type: string, enum: [Alive, Dead, unknown] }
