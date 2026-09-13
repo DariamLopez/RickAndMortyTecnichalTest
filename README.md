@@ -12,17 +12,15 @@ Full-stack technical test: a Laravel API that syncs data from the public [Rick a
 ## Getting started (Docker / Laravel Sail)
 
 ```bash
-composer install
 cp .env.example .env
-php artisan key:generate
 ./vendor/bin/sail up -d
-./vendor/bin/sail artisan migrate
-./vendor/bin/sail artisan rickandmorty:sync
-./vendor/bin/sail npm install
-./vendor/bin/sail npm run build
 ```
 
-Then visit `http://localhost`.
+That's it — the container's entrypoint ([`docker/entrypoint.sh`](./docker/entrypoint.sh)) automatically installs Composer/npm dependencies, generates `APP_KEY` if missing, runs migrations, and builds the frontend assets on first boot (each step is skipped on later restarts once it's already done). Then visit `http://localhost`, and run the sync command once to populate the database:
+
+```bash
+./vendor/bin/sail artisan rickandmorty:sync
+```
 
 ### Fallback if `sail` fails on Windows (WSL with no proper default distro)
 
@@ -32,10 +30,7 @@ This is a local environment quirk, not a project issue: `compose.yaml` is the sa
 
 ```powershell
 docker compose up -d --build
-docker compose exec laravel.test php artisan migrate
 docker compose exec laravel.test php artisan rickandmorty:sync
-docker compose exec laravel.test npm install
-docker compose exec laravel.test npm run build
 ```
 
 To make `sail` work natively, install a real Linux distro and set it as default:
@@ -53,6 +48,29 @@ Vite can run either inside the container or on the host; both work since assets 
 npm install
 npm run dev
 ```
+
+## Deployment to a restricted-port server
+
+Some hosts (e.g. a shared company server) require every exposed port to fall within a specific range and SSH key-based access. `compose.yaml` already reads all ports from `.env`, so nothing needs to change there — only the values below:
+
+```env
+APP_PORT=6010
+VITE_PORT=6011
+FORWARD_DB_PORT=6012
+APP_URL=http://<server-host-or-ip>:6010
+VITE_API_BASE_URL="${APP_URL}/api"
+```
+
+Deploying is then just:
+
+```bash
+ssh -i ~/.ssh/id_ed25519 -p <ssh-port> user@host
+git clone <repo> && cd <repo>
+cp .env.example .env   # adjust the ports/host above
+docker compose up -d --build
+```
+
+The entrypoint script handles the rest (Composer, `APP_KEY`, migrations, npm build) — no need to have PHP, Composer, or Node installed on the host itself, since everything runs inside the container.
 
 ## Running the sync command
 
