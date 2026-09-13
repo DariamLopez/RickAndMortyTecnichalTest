@@ -1,0 +1,338 @@
+openapi: 3.0.3
+info:
+  title: Rick and Morty App API
+  version: "1.0.0"
+  description: >
+    Own REST API that combines data synchronized from the public Rick and Morty API
+    with user functionality (authentication and favorite characters).
+servers:
+  - url: /api
+    description: Same-origin API served by the Laravel app.
+
+tags:
+  - name: Auth
+    description: Registration, login, session, and logout.
+  - name: Characters
+    description: Read-only access to synchronized characters, episodes, and locations.
+  - name: Favorites
+    description: Manage the authenticated user's favorite characters.
+
+paths:
+  /register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation]
+              properties:
+                name: { type: string, example: "Rick Sanchez" }
+                email: { type: string, format: email, example: "rick@citadel.test" }
+                password: { type: string, format: password, example: "wubbalubba123" }
+                password_confirmation: { type: string, format: password, example: "wubbalubba123" }
+      responses:
+        "201":
+          description: User created, returns the user and a bearer token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthPayload" }
+        "422":
+          description: Validation error (e.g. duplicate email).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationError" }
+
+  /login:
+    post:
+      tags: [Auth]
+      summary: Log in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Returns the user and a new bearer token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthPayload" }
+        "422":
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationError" }
+
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current bearer token
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Token revoked.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message: { type: string, example: "Logged out successfully" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: Get the authenticated user
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Current user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /characters:
+    get:
+      tags: [Characters]
+      summary: List characters with optional filters and pagination
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+          description: Case-insensitive partial match on the character's name.
+        - name: status
+          in: query
+          schema: { type: string, enum: [Alive, Dead, unknown] }
+        - name: species
+          in: query
+          schema: { type: string }
+        - name: gender
+          in: query
+          schema: { type: string, enum: [Male, Female, Genderless, unknown] }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        "200":
+          description: Paginated list of characters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Character" }
+                  links: { $ref: "#/components/schemas/PaginationLinks" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "422":
+          description: Invalid filter value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationError" }
+
+  /characters/{character}:
+    get:
+      tags: [Characters]
+      summary: Get a single character with its episodes and locations
+      parameters:
+        - name: character
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Character detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/CharacterDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /favorites:
+    get:
+      tags: [Favorites]
+      summary: List the authenticated user's favorite characters
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          description: Paginated list of favorite characters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Character" }
+                  links: { $ref: "#/components/schemas/PaginationLinks" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /favorites/{character}:
+    post:
+      tags: [Favorites]
+      summary: Add a character to favorites (idempotent)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: character
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "201":
+          description: Character added to favorites (or already was).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Character" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Favorites]
+      summary: Remove a character from favorites (idempotent)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: character
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Removed (or wasn't a favorite). }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Custom personal access token issued by /login or /register.
+
+  responses:
+    Unauthenticated:
+      description: Missing, invalid, or expired token.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string, example: "Resource not found." }
+
+    ValidationError:
+      type: object
+      properties:
+        message: { type: string, example: "The given data was invalid." }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: "Rick Sanchez" }
+        email: { type: string, format: email, example: "rick@citadel.test" }
+
+    AuthPayload:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user: { $ref: "#/components/schemas/User" }
+            token:
+              type: string
+              description: Plaintext bearer token. Only returned once, at login/registration.
+
+    Location:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: "Earth (C-137)" }
+        type: { type: string, example: "Planet" }
+        dimension: { type: string, example: "Dimension C-137" }
+
+    Episode:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: "Pilot" }
+        air_date: { type: string, example: "December 2, 2013" }
+        episode_code: { type: string, example: "S01E01" }
+
+    Character:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: "Rick Sanchez" }
+        status: { type: string, enum: [Alive, Dead, unknown] }
+        species: { type: string, example: "Human" }
+        type: { type: string, example: "" }
+        gender: { type: string, enum: [Male, Female, Genderless, unknown] }
+        image: { type: string, format: uri }
+
+    CharacterDetail:
+      allOf:
+        - $ref: "#/components/schemas/Character"
+        - type: object
+          properties:
+            origin: { $ref: "#/components/schemas/Location" }
+            current_location: { $ref: "#/components/schemas/Location" }
+            episodes:
+              type: array
+              items: { $ref: "#/components/schemas/Episode" }
+
+    PaginationLinks:
+      type: object
+      properties:
+        first: { type: string, format: uri, nullable: true }
+        last: { type: string, format: uri, nullable: true }
+        prev: { type: string, format: uri, nullable: true }
+        next: { type: string, format: uri, nullable: true }
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        from: { type: integer, nullable: true }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        to: { type: integer, nullable: true }
+        total: { type: integer }
