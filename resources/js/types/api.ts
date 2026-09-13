@@ -40,8 +40,8 @@ export interface Character {
 
 export interface CharacterDetail extends Character {
     origin: Location | null;
-    location: Location | null;
-    episode: Episode[];
+    current_location: Location | null;
+    episodes: Episode[];
 }
 
 export interface CharacterFilters {

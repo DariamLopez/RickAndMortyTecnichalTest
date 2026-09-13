@@ -9,7 +9,7 @@ export const favoriteRepository = {
     },
 
     async add(characterId: number): Promise<void> {
-        await http.post('/favorites', { characterId });
+        await http.post(`/favorites/${characterId}`, {}, { "params": { characterId } });
     },
 
     async remove(characterId: number): Promise<void> {

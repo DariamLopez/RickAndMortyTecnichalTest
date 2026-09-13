@@ -1,4 +1,4 @@
-import { authRepository } from "@/repositories/AuthRepository";
+import { authRepository } from "@/repositories/authRepository";
 import type { AuthPayload, User } from "@/types/api";
 import { defineStore } from "pinia";
 
