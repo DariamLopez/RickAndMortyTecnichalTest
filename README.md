@@ -45,8 +45,6 @@ wsl --install -d Ubuntu
 wsl --set-default Ubuntu
 ```
 
-**Note:** the MySQL container is exposed on host port `3307` (not `3306`), since `3306` was already in use by a local MySQL service on the development machine. This doesn't affect the app — internally it still talks to `mysql:3306` on the Docker network. Adjust `FORWARD_DB_PORT` in `.env` if you don't have that conflict.
-
 ### Frontend dev server (hot reload)
 
 Vite can run either inside the container or on the host; both work since assets are served independently from the PHP app:
@@ -82,12 +80,12 @@ npm run types:check
 
 ## API documentation
 
-See [`openapi.yaml`](./openapi.yaml) for the full OpenAPI 3.0 spec (endpoints, filters, request/response schemas, auth, error format). Paste it into https://editor.swagger.io for a readable view.
+See [`openapi.yaml`](./openapi.yaml) for the full OpenAPI 3.0 spec (endpoints, filters, request/response schemas, auth, error format). Paste it into https://editor.swagger.io for a readable view. Or use 'docs/api' endpoint.
 
 ## Design decisions
 
 - **No Inertia.** The starter kit ships with Inertia + Fortify (session-based auth, server-rendered pages). Since the test explicitly requires a decoupled SPA with token-based auth and client-side routing, Inertia/Fortify/passkeys/wayfinder were removed in favor of a plain Laravel JSON API + a separate Vue Router SPA.
-- **Custom token authentication, no Sanctum.** A `personal_access_tokens` table stores only the SHA-256 hash of each token (never the plaintext); a custom `TokenGuard` (implementing `Illuminate\Contracts\Auth\Guard`) resolves the user from the `Authorization: Bearer` header. This was a deliberate choice to demonstrate understanding of Laravel's auth internals rather than relying on a package, per the bonus criteria.
+- **Custom token authentication, no Sanctum.** A `personal_access_tokens` table stores only the SHA-256 hash of each token (never the plaintext); a custom `TokenGuard` (implementing `Illuminate\Contracts\Auth\Guard`) resolves the user from the `Authorization: Bearer` header.
 - **Decoupled external API client.** `RickAndMortyClient` (`app/Services/RickAndMorty`) is the only place that knows about the provider's HTTP shape. It validates the response shape before mapping, retries on connection errors/5xx (never on 4xx), and maps everything into immutable DTOs (`CharacterData`, `EpisodeData`, `LocationData`) that carry the provider's `external_id`, never our own database `id` — the translation from `external_id` to internal `id` happens only in the sync command, which is the only piece that knows both worlds.
 - **Idempotent sync via natural keys.** Every synced entity has a unique `external_id`; the command always resolves rows via `updateOrCreate(['external_id' => ...], [...])` and syncs the `character_episode` pivot with `sync()` instead of `attach()`, so re-running the command is always safe.
 - **PHP backed enums for closed-value fields.** `Character::status` and `Character::gender` are cast to `CharacterStatus`/`CharacterGender` backed enums. The sync command uses `tryFrom() ?? Unknown` when mapping external data, so an unexpected value from the provider never breaks persistence.
@@ -98,9 +96,4 @@ See [`openapi.yaml`](./openapi.yaml) for the full OpenAPI 3.0 spec (endpoints, f
 - **Reusable layout.** `layouts/AppLayout.vue` has no knowledge of Pinia or this app's routes — it receives a title, nav items, and slots. `App.vue` is the only file that wires it to this project's auth store and route names.
 - **Vuetify** was chosen over Tailwind/shadcn (the starter kit's default) per prior experience with the library.
 
-## What's not implemented (time constraints)
-
-- Rate limiting / throttling beyond Laravel's defaults.
-- Redis (not needed — `database` drivers are used for cache/session/queue, avoiding an extra container).
-- SPA served by the same Laravel app in a single environment (currently run separately via Vite; both `sail up` and `npm run dev`/`npm run build` are documented above).
 
