@@ -1,5 +1,5 @@
 export interface RequestConfig {
-    params?: Object;
+    params?: object;
     headers?: Record<string, string>;
 }
 

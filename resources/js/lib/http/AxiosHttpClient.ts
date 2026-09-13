@@ -9,7 +9,7 @@ export class AxiosHttpClient implements HttpClient {
     private readonly instance: AxiosInstance;
     constructor(baseUrl: string) {
         this.instance = axios.create({
-            baseURL: import.meta.env.VITE_API_BASE_URL,
+            baseURL: baseUrl,
             headers: {
                 Accept: "application/json",
             },
