@@ -19,6 +19,7 @@ class FavoriteController
 
     public function store(Request $request, Character $character): JsonResponse
     {
+        dump($character);
         $request->user()->favoriteCharacters()->syncWithoutDetaching([$character->id]);
 
         return response()->json([
