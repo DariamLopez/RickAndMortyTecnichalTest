@@ -2,6 +2,7 @@
 
 namespace App\Services\RickAndMorty\DTOs;
 
+use App\Services\RickAndMorty\Exceptions\RickAndMortyValidationException;
 
 final readonly class LocationData
 {
@@ -15,11 +16,15 @@ final readonly class LocationData
 
     public static function fromArray(array $data): self
     {
+        if (! isset($data['id']) || ! is_numeric($data['id'])) {
+            throw new RickAndMortyValidationException('Location item is missing a valid "id" field.');
+        }
+
         return new self(
-            externalId: (int) $data['id'] ?? 0,
-            name: (string) $data['name'] ?? 'unknown',
-            type: (string) $data['type'] ?? 'unknown',
-            dimension: (string) $data['dimension'] ?? 'unknown',
+            externalId: (int) $data['id'],
+            name: (string) ($data['name'] ?? 'unknown'),
+            type: (string) ($data['type'] ?? 'unknown'),
+            dimension: (string) ($data['dimension'] ?? 'unknown'),
         );
     }
 }

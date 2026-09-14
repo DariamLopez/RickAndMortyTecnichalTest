@@ -2,6 +2,9 @@
 
 namespace Tests\Unit\Services\RickAndMorty;
 
+use App\Services\RickAndMorty\DTOs\CharacterData;
+use App\Services\RickAndMorty\DTOs\EpisodeData;
+use App\Services\RickAndMorty\DTOs\LocationData;
 use App\Services\RickAndMorty\Exceptions\RickAndMortyApiException;
 use App\Services\RickAndMorty\Exceptions\RickAndMortyValidationException;
 use App\Services\RickAndMorty\RickAndMortyClient;
@@ -180,5 +183,79 @@ class RickAndMortyClientTest extends TestCase
 
         $this->assertSame(3, $location->externalId);
         $this->assertSame('Citadel of Ricks', $location->name);
+    }
+
+    public function test_character_data_rejects_an_item_missing_a_valid_id(): void
+    {
+        $this->expectException(RickAndMortyValidationException::class);
+
+        CharacterData::fromArray(['name' => 'No Id Here']);
+    }
+
+    public function test_episode_data_rejects_an_item_missing_a_valid_id(): void
+    {
+        $this->expectException(RickAndMortyValidationException::class);
+
+        EpisodeData::fromArray(['name' => 'No Id Here']);
+    }
+
+    public function test_location_data_rejects_an_item_missing_a_valid_id(): void
+    {
+        $this->expectException(RickAndMortyValidationException::class);
+
+        LocationData::fromArray(['name' => 'No Id Here']);
+    }
+
+    public function test_it_skips_an_invalid_item_and_keeps_the_rest_of_the_page(): void
+    {
+        Http::fake([
+            'rickandmortyapi.com/api/character*' => Http::response([
+                'info' => ['count' => 2, 'pages' => 1, 'next' => null, 'prev' => null],
+                'results' => [
+                    [
+                        'name' => 'No Id Here',
+                        'status' => 'Alive',
+                        'species' => 'Human',
+                        'gender' => 'Male',
+                        'origin' => ['name' => 'unknown', 'url' => ''],
+                        'location' => ['name' => 'unknown', 'url' => ''],
+                        'episode' => [],
+                    ],
+                    [
+                        'id' => 2,
+                        'name' => 'Morty Smith',
+                        'status' => 'Alive',
+                        'species' => 'Human',
+                        'gender' => 'Male',
+                        'origin' => ['name' => 'unknown', 'url' => ''],
+                        'location' => ['name' => 'unknown', 'url' => ''],
+                        'episode' => [],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $page = $this->client()->characters();
+
+        $this->assertCount(1, $page->items);
+        $this->assertCount(1, $page->rawItems);
+        $this->assertSame(2, $page->items[0]->externalId);
+    }
+
+    public function test_it_returns_an_empty_page_when_every_item_is_invalid(): void
+    {
+        Http::fake([
+            'rickandmortyapi.com/api/character*' => Http::response([
+                'info' => ['count' => 1, 'pages' => 1, 'next' => null, 'prev' => null],
+                'results' => [
+                    ['name' => 'No Id Here'],
+                ],
+            ], 200),
+        ]);
+
+        $page = $this->client()->characters();
+
+        $this->assertCount(0, $page->items);
+        $this->assertCount(0, $page->rawItems);
     }
 }

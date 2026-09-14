@@ -2,6 +2,7 @@
 
 namespace App\Services\RickAndMorty\DTOs;
 
+use App\Services\RickAndMorty\Exceptions\RickAndMortyValidationException;
 use App\Services\RickAndMorty\Support\ExternalId;
 
 final readonly class CharacterData
@@ -22,8 +23,12 @@ final readonly class CharacterData
 
     public static function fromArray(array $data): self
     {
+        if (! isset($data['id']) || ! is_numeric($data['id'])) {
+            throw new RickAndMortyValidationException('Character item is missing a valid "id" field.');
+        }
+
         return new self(
-            externalId: (int) $data['id'] ?? 0,
+            externalId: (int) $data['id'],
             name: (string) ($data['name'] ?? 'unknown'),
             status: (string) ($data['status'] ?? 'unknown'),
             species: (string) ($data['species'] ?? 'unknown'),

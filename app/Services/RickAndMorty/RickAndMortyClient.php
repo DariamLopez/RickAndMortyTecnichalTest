@@ -11,6 +11,7 @@ use App\Services\RickAndMorty\Exceptions\RickAndMortyValidationException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 final class RickAndMortyClient implements RickAndMortyClientInterface
@@ -41,16 +42,36 @@ final class RickAndMortyClient implements RickAndMortyClientInterface
     {
         $data = $this->request($endpoint, $page);
 
-        $items = array_map(
-            static fn(array $item) => $dtoClass::fromArray($item),
-            $data['results']
-        );
+        $items = [];
+        $rawItems = [];
+
+        foreach ($data['results'] as $item) {
+            if (! is_array($item)) {
+                Log::warning('rick-and-morty-client: skipped a non-array item', [
+                    'endpoint' => $endpoint,
+                    'page' => $page,
+                ]);
+
+                continue;
+            }
+
+            try {
+                $items[] = $dtoClass::fromArray($item);
+                $rawItems[] = $item;
+            } catch (RickAndMortyValidationException $exception) {
+                Log::warning('rick-and-morty-client: skipped an invalid item', [
+                    'endpoint' => $endpoint,
+                    'page' => $page,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
+        }
 
         $info = $data['info'];
 
         return new PageResult(
             items: $items,
-            rawItems: $data['results'],
+            rawItems: $rawItems,
             currentPage: $page,
             totalPages: (int) ($info['pages'] ?? $page),
             totalCount: (int) ($info['count'] ?? count($items)),
