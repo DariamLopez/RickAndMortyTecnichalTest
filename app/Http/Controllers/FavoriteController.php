@@ -19,7 +19,6 @@ class FavoriteController
 
     public function store(Request $request, Character $character): JsonResponse
     {
-        dump($character);
         $request->user()->favoriteCharacters()->syncWithoutDetaching([$character->id]);
 
         return response()->json([
@@ -31,7 +30,7 @@ class FavoriteController
     {
         $character = $request->user()->favoriteCharacters()->find($character->id);
         if (!$character) {
-            return response()->json(['message' => 'Missing, invalid, or expired token.'], 401);
+            return response()->json(['message' => "Removed (or wasn't a favorite)."], 204);
         }
         $request->user()->favoriteCharacters()->detach($character->id);
 
